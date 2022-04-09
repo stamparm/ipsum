@@ -13,15 +13,16 @@ As an example, to get a fresh and ready-to-deploy auto-ban list of "bad IPs" tha
 curl --compressed https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt 2>/dev/null | grep -v "#" | grep -v -E "\s[1-2]$" | cut -f 1
 ```
 
-If you want to try it with `ipset`, you can do the following:
-
-```
-sudo su
-apt -qq install iptables ipset
-ipset -q flush ipsum
-ipset -q create ipsum hash:net
-for ip in $(curl --compressed https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt 2>/dev/null | grep -v "#" | grep -v -E "\s[1-2]$" | cut -f 1); do ipset add ipsum $ip; done
+And here is a cron-ready `ipset` based script:
+```bash
+#!/bin/bash
+apt-get -qq install iptables ipset
+ipset -q destroy ipsum-prev
+ipset -q create ipsum-prev hash:net
+for ip in $(curl --compressed https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt 2>/dev/null | grep -v "#" | grep -v -E "\s[1-2]$" | cut -f 1); do ipset add ipsum-prev $ip; done
+ipset -q swap ipsum-prev ipsum || ipset rename ipsum-prev ipsum
 iptables -I INPUT -m set --match-set ipsum src -j DROP
+iptables-save | uniq | iptables-restore
 ```
 
 In directory [levels](levels) you can find preprocessed raw IP lists based on number of blacklist occurrences (e.g. [levels/3.txt](levels/3.txt) holds IP addresses that can be found on 3 or more blacklists).
