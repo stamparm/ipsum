@@ -24,6 +24,16 @@ for ip in $(curl https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.t
 iptables -D INPUT -m set --match-set ipsum src -j DROP 2>/dev/null
 iptables -I INPUT -m set --match-set ipsum src -j DROP
 ```
+If you want to try it with `nftables`, you can do the following:
+
+```
+sudo su
+nft flush set inet filter ipsum
+nft add set inet filter ipsum '{ type ipv4_addr; }'
+for ip in $(curl https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt 2>/dev/null | grep -v "#" | grep -v -E "\s[1-2]$" | cut -f 1); do nft add element inet filter ipsum { $ip }; done
+nft delete rule inet filter input handle $(nft -a list chain inet filter input | grep 'ip saddr @ipsum drop' | awk '{print $NF}') 2>/dev/null
+nft add rule inet filter input ip saddr @ipsum drop
+```
 
 In directory [levels](levels) you can find preprocessed raw IP lists based on number of blacklist occurrences (e.g. [levels/3.txt](levels/3.txt) holds IP addresses that can be found on 3 or more blacklists).
 
